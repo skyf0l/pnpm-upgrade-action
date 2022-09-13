@@ -29,14 +29,18 @@ jobs:
 
       - name: Upgrade dependencies
         run: |
-          OUTDATED_DEPS=$(pnpm -r outdated --compatible || true)
-          echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
-          echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
           if [ "${{ github.event.inputs.upgrade_type }}" = "latest" ]; then
+            OUTDATED_DEPS=$(pnpm -r outdated || true)
+            echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
+            echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
             echo 'UPGRADE_CMD=pnpm -r update --latest' >> $GITHUB_ENV
             pnpm -r update --latest
           else
+            OUTDATED_DEPS=$(pnpm -r outdated --compatible || true)
+            echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
+            echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
+            echo 'EOF' >> $GITHUB_ENV
             echo 'UPGRADE_CMD=pnpm -r update' >> $GITHUB_ENV
             pnpm -r update
           fi
