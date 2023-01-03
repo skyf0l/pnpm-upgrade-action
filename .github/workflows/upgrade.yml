@@ -9,12 +9,16 @@ on:
         type: choice
         description: Upgrade type
         options:
-          - compatible
           - latest
+          - compatible
+        default: latest
 
 jobs:
   upgrader:
     runs-on: ubuntu-latest
+    env:
+      UPGRADE_TYPE: ${{ github.event.inputs.upgrade_type || 'latest' }}
+
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2.2.2
@@ -22,28 +26,29 @@ jobs:
           version: 7
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: lts/*
           cache: 'pnpm'
-
       - run: pnpm install
 
-      - name: Upgrade dependencies
+      - name: Upgrade latest dependencies
+        if: ${{ env.UPGRADE_TYPE == 'latest' }}
         run: |
-          if [ "${{ github.event.inputs.upgrade_type }}" = "latest" ]; then
-            OUTDATED_DEPS=$(pnpm -r outdated || true)
-            echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
-            echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-            echo 'UPGRADE_CMD=pnpm -r update --latest' >> $GITHUB_ENV
-            pnpm -r update --latest
-          else
-            OUTDATED_DEPS=$(pnpm -r outdated --compatible || true)
-            echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
-            echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
-            echo 'EOF' >> $GITHUB_ENV
-            echo 'UPGRADE_CMD=pnpm -r update' >> $GITHUB_ENV
-            pnpm -r update
-          fi
+          OUTDATED_DEPS=$(pnpm -r outdated || true)
+          echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
+          echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo 'UPGRADE_CMD=pnpm -r update --latest' >> $GITHUB_ENV
+          pnpm -r update --latest
+
+      - name: Upgrade compatible dependencies
+        if: ${{ env.UPGRADE_TYPE == 'compatible' }}
+        run: |
+          OUTDATED_DEPS=$(pnpm -r outdated --compatible || true)
+          echo 'OUTDATED_DEPS<<EOF' >> $GITHUB_ENV
+          echo "${OUTDATED_DEPS}" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo 'UPGRADE_CMD=pnpm -r update' >> $GITHUB_ENV
+          pnpm -r update
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
